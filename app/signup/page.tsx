@@ -6,8 +6,13 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronLeft } from "lucide-react"
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
+import { auth, db } from "@/lib/firebase"
+import { signIn } from "next-auth/react"
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,19 +23,42 @@ export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate signup - in a real app, this would create an account with a backend
-    setTimeout(() => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await updateProfile(userCredential.user, { displayName: name });
+
+      const userDocRef = doc(db, "users", user.email);
+      await setDoc(userDocRef, {
+        name,
+        email,
+        createdAt: serverTimestamp(),
+        role: "user",
+      });
+
+      // Optionally sign in via NextAuth after signup
+      await signIn("credentials", {
+        email,
+        password,
+        redirect: true,
+        callbackUrl: "/dashboard",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Signup failed",
+        description: err.message,
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-      // Store some user info in localStorage to simulate being logged in
-      localStorage.setItem("user", JSON.stringify({ name, email }))
-      router.push("/dashboard")
-    }, 1000)
+    }
   }
 
   return (

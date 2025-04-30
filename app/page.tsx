@@ -1,9 +1,24 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { useSession } from "next-auth/react"
 
 export default function Home() {
+  const router = useRouter()
+  const { data: session, status } = useSession() // ✅ move hook call here
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      router.push("/dashboard")
+      return
+    }
+
+  }, [session, router])
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -40,7 +55,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/dashboard">
+                  <Link href="/templates">
                     <Button size="lg" className="w-full">
                       Start Building <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>

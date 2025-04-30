@@ -5,10 +5,14 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FileText, Plus, Calendar, MoreHorizontal, Edit, Copy, Trash2, LogOut } from "lucide-react"
 import { format } from "date-fns"
+import { useAuth } from "@/hooks/use-auth"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { collection, getDocs, query, where, addDoc, setDoc, doc, deleteDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { useSession, signOut } from "next-auth/react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,85 +40,80 @@ export default function DashboardPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [userName, setUserName] = useState("")
+  const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+  const { data: session, status } = useSession() // ✅ move hook call here
 
   useEffect(() => {
-    // Check if user is logged in
-    const userString = localStorage.getItem("user")
-    if (!userString) {
-      router.push("/login")
-      return
-    }
-
-    try {
-      const user = JSON.parse(userString)
-      setUserName(user.name || user.email || "User")
-    } catch (error) {
-      console.error("Error parsing user data:", error)
-    }
-
-    // Load saved resumes
-    try {
-      const savedResumesString = localStorage.getItem("savedResumes")
-      if (savedResumesString) {
-        const resumes = JSON.parse(savedResumesString)
-        setSavedResumes(resumes)
+    const fetchUserResumes = async () => {
+      if (!session?.user?.email) {
+        router.push("/login")
+        return
       }
-    } catch (error) {
-      console.error("Error loading saved resumes:", error)
-      toast({
-        title: "Error loading resumes",
-        description: "There was an error loading your saved resumes.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+
+      setUserName(session?.user?.name || session?.user?.email || "User")
+
+      try {
+        const q = query(
+          collection(db, "resumes"),
+          where("userEmail", "==", session?.user.email)
+        )
+        const snapshot = await getDocs(q)
+        const resumes = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as SavedResume[]
+        console.log(resumes)
+        setSavedResumes(resumes)
+      } catch (error) {
+        console.error("Error fetching resumes from Firestore:", error)
+        toast({
+          title: "Error loading resumes",
+          description: "There was an error loading your saved resumes.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [router, toast])
 
-  const handleCreateNewResume = () => {
+    if (status === "authenticated") {
+      fetchUserResumes()
+    }
+  }, [session, status, router, toast])
+
+  const handleCreateNewResume = async () => {
     try {
-      // Create a new resume with a unique ID
-      const newResumeId = `resume_${Date.now()}`
-
-      // Create the saved resume object
+      // const { data: session } = useSession()
+      if (!session?.user?.email) return
+  
       const newResume: SavedResume = {
-        id: newResumeId,
+        id: `resume_${Date.now()}`,
         name: newResumeName || "Untitled Resume",
         lastUpdated: new Date().toISOString(),
-        templateId: "modern", // Default template
+        templateId: "modern",
+        userEmail: session.user.email,
         data: {
-          personalInfo: {
-            firstName: "",
-            lastName: "",
-            title: "",
-            email: "",
-            phone: "",
-            location: "",
-            website: "",
-            summary: "",
-          },
-          education: [],
-          experience: [],
-          projects: [],
-          skills: [],
-        },
+                personalInfo: {
+                  firstName: "",
+                  lastName: "",
+                  title: "",
+                  email: "",
+                  phone: "",
+                  location: "",
+                  website: "",
+                  summary: "",
+                },
+                education: [],
+                experience: [],
+                projects: [],
+                skills: [],
+              },
       }
-
-      // Update the saved resumes
-      const updatedResumes = [...savedResumes, newResume]
-      setSavedResumes(updatedResumes)
-      localStorage.setItem("savedResumes", JSON.stringify(updatedResumes))
-
-      // Set as current resume and redirect to builder
-      localStorage.setItem("currentResumeId", newResumeId)
-
-      toast({
-        title: "Resume created",
-        description: "Your new resume has been created.",
-      })
-
+  
+      await addDoc(collection(db, "resumes"), newResume)
+  
+      toast({ title: "Resume created", description: "Your new resume has been created." })
+      setIsDialogOpen(false)
+      setNewResumeName("")
       router.push("/builder")
     } catch (error) {
       console.error("Error creating new resume:", error)
@@ -123,33 +122,90 @@ export default function DashboardPage() {
         description: "There was an error creating your new resume.",
         variant: "destructive",
       })
-    } finally {
-      setIsDialogOpen(false)
-      setNewResumeName("")
     }
   }
+
+  // const handleCreateNewResume = () => {
+  //   try {
+  //     // Create a new resume with a unique ID
+  //     const newResumeId = `resume_${Date.now()}`
+
+  //     // Create the saved resume object
+  //     const newResume: SavedResume = {
+  //       id: newResumeId,
+  //       name: newResumeName || "Untitled Resume",
+  //       lastUpdated: new Date().toISOString(),
+  //       templateId: "modern", // Default template
+  //       data: {
+  //         personalInfo: {
+  //           firstName: "",
+  //           lastName: "",
+  //           title: "",
+  //           email: "",
+  //           phone: "",
+  //           location: "",
+  //           website: "",
+  //           summary: "",
+  //         },
+  //         education: [],
+  //         experience: [],
+  //         projects: [],
+  //         skills: [],
+  //       },
+  //     }
+
+  //     // Update the saved resumes
+  //     const updatedResumes = [...savedResumes, newResume]
+  //     setSavedResumes(updatedResumes)
+  //     localStorage.setItem("savedResumes", JSON.stringify(updatedResumes))
+
+  //     // Set as current resume and redirect to builder
+  //     localStorage.setItem("currentResumeId", newResumeId)
+
+  //     toast({
+  //       title: "Resume created",
+  //       description: "Your new resume has been created.",
+  //     })
+
+  //     router.push("/builder")
+  //   } catch (error) {
+  //     console.error("Error creating new resume:", error)
+  //     toast({
+  //       title: "Error creating resume",
+  //       description: "There was an error creating your new resume.",
+  //       variant: "destructive",
+  //     })
+  //   } finally {
+  //     setIsDialogOpen(false)
+  //     setNewResumeName("")
+  //   }
+  // }
 
   const handleEditResume = (resumeId: string) => {
     localStorage.setItem("currentResumeId", resumeId)
     router.push("/builder")
   }
 
-  const handleDuplicateResume = (resume: SavedResume) => {
+  const handleDuplicateResume = async (resume: SavedResume) => {
     try {
-      // Create a duplicate with a new ID
+      if (!session?.user?.email) return
+  
       const duplicateId = `resume_${Date.now()}`
       const duplicateResume: SavedResume = {
         ...resume,
         id: duplicateId,
         name: `${resume.name} (Copy)`,
         lastUpdated: new Date().toISOString(),
+        userEmail: session.user.email, // Ensure the user is tied to the duplicate
       }
-
-      // Update the saved resumes
+  
+      // Save to Firestore
+      await setDoc(doc(db, "resumes", duplicateId), duplicateResume)
+  
+      // Update local state
       const updatedResumes = [...savedResumes, duplicateResume]
       setSavedResumes(updatedResumes)
-      localStorage.setItem("savedResumes", JSON.stringify(updatedResumes))
-
+  
       toast({
         title: "Resume duplicated",
         description: "A copy of your resume has been created.",
@@ -163,20 +219,23 @@ export default function DashboardPage() {
       })
     }
   }
-
-  const handleDeleteResume = (resumeId: string) => {
+  
+  const handleDeleteResume = async (resumeId: string) => {
     try {
-      // Filter out the resume to delete
+      if (!session?.user?.email) return
+  
+      // Delete from Firestore
+      await deleteDoc(doc(db, "resumes", resumeId))
+  
       const updatedResumes = savedResumes.filter((resume) => resume.id !== resumeId)
       setSavedResumes(updatedResumes)
-      localStorage.setItem("savedResumes", JSON.stringify(updatedResumes))
-
-      // If the current resume is being deleted, clear the current resume ID
+  
+      // Clear current resume if it's being deleted
       const currentResumeId = localStorage.getItem("currentResumeId")
       if (currentResumeId === resumeId) {
         localStorage.removeItem("currentResumeId")
       }
-
+  
       toast({
         title: "Resume deleted",
         description: "Your resume has been deleted.",
@@ -190,10 +249,10 @@ export default function DashboardPage() {
       })
     }
   }
-
-  const handleLogout = () => {
+  
+  const handleLogout = async () => {
     localStorage.removeItem("user")
-    router.push("/login")
+    await signOut({ callbackUrl: "/login" })
   }
 
   const getTemplateName = (templateId: string) => {

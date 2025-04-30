@@ -59,6 +59,7 @@ export interface Template {
 export interface SavedResume {
   id: string
   name: string
+  userEmail: string
   lastUpdated: string
   templateId: string
   data: ResumeData
