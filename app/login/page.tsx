@@ -34,7 +34,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container flex mx-auto h-screen w-screen flex-col items-center justify-center">
+    <div className="container px-4 md:px-6 flex mx-auto h-screen w-screen flex-col items-center justify-center">
       <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
         <Button variant="ghost">
           <ChevronLeft className="mr-2 h-4 w-4" />
