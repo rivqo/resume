@@ -69,7 +69,7 @@ export default function BuilderPage() {
         lastUpdated: new Date().toISOString(),
         templateId: selectedTemplate.id,
         data: resumeData,
-        userEmail: session?.user?.email || "",
+        userId: session?.user?.uid || "",
       }
   
       await setDoc(doc(db, "resumes", resumeId), savedResume)
@@ -153,7 +153,7 @@ export default function BuilderPage() {
       if (!email) return
   
       try {
-        const q = query(collection(db, "resumes"), where("userEmail", "==", email))
+        const q = query(collection(db, "resumes"), where("userId", "==", session?.user?.uid))
         const querySnapshot = await getDocs(q)
         const resumes: SavedResume[] = []
   

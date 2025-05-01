@@ -47,21 +47,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchUserResumes = async () => {
-      if (!session?.user?.email) {
+      if (!session?.user) {
         router.push("/login")
         return
       }
+      // console.log(session.user)
 
       setUserName(session?.user?.name || session?.user?.email || "User")
 
       try {
         const q = query(
           collection(db, "resumes"),
-          where("userEmail", "==", session?.user.email)
+          where("userId", "==", session?.user?.uid)
         )
         const snapshot = await getDocs(q)
         const resumes = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as SavedResume[]
-        console.log(resumes)
+        // console.log(resumes)
         setSavedResumes(resumes)
       } catch (error) {
         console.error("Error fetching resumes from Firestore:", error)
@@ -83,14 +84,14 @@ export default function DashboardPage() {
   const handleCreateNewResume = async () => {
     try {
       // const { data: session } = useSession()
-      if (!session?.user?.email) return
+      if (!session?.user) return
   
       const newResume: SavedResume = {
         id: `resume_${Date.now()}`,
         name: newResumeName || "Untitled Resume",
         lastUpdated: new Date().toISOString(),
         templateId: "modern",
-        userEmail: session.user.email,
+        userId: session?.user?.uid,
         data: {
                 personalInfo: {
                   firstName: "",
@@ -125,62 +126,6 @@ export default function DashboardPage() {
     }
   }
 
-  // const handleCreateNewResume = () => {
-  //   try {
-  //     // Create a new resume with a unique ID
-  //     const newResumeId = `resume_${Date.now()}`
-
-  //     // Create the saved resume object
-  //     const newResume: SavedResume = {
-  //       id: newResumeId,
-  //       name: newResumeName || "Untitled Resume",
-  //       lastUpdated: new Date().toISOString(),
-  //       templateId: "modern", // Default template
-  //       data: {
-  //         personalInfo: {
-  //           firstName: "",
-  //           lastName: "",
-  //           title: "",
-  //           email: "",
-  //           phone: "",
-  //           location: "",
-  //           website: "",
-  //           summary: "",
-  //         },
-  //         education: [],
-  //         experience: [],
-  //         projects: [],
-  //         skills: [],
-  //       },
-  //     }
-
-  //     // Update the saved resumes
-  //     const updatedResumes = [...savedResumes, newResume]
-  //     setSavedResumes(updatedResumes)
-  //     localStorage.setItem("savedResumes", JSON.stringify(updatedResumes))
-
-  //     // Set as current resume and redirect to builder
-  //     localStorage.setItem("currentResumeId", newResumeId)
-
-  //     toast({
-  //       title: "Resume created",
-  //       description: "Your new resume has been created.",
-  //     })
-
-  //     router.push("/builder")
-  //   } catch (error) {
-  //     console.error("Error creating new resume:", error)
-  //     toast({
-  //       title: "Error creating resume",
-  //       description: "There was an error creating your new resume.",
-  //       variant: "destructive",
-  //     })
-  //   } finally {
-  //     setIsDialogOpen(false)
-  //     setNewResumeName("")
-  //   }
-  // }
-
   const handleEditResume = (resumeId: string) => {
     localStorage.setItem("currentResumeId", resumeId)
     router.push("/builder")
@@ -188,7 +133,7 @@ export default function DashboardPage() {
 
   const handleDuplicateResume = async (resume: SavedResume) => {
     try {
-      if (!session?.user?.email) return
+      if (!session?.user) return
   
       const duplicateId = `resume_${Date.now()}`
       const duplicateResume: SavedResume = {
@@ -196,7 +141,7 @@ export default function DashboardPage() {
         id: duplicateId,
         name: `${resume.name} (Copy)`,
         lastUpdated: new Date().toISOString(),
-        userEmail: session.user.email, // Ensure the user is tied to the duplicate
+        userId: session?.user.uid, // Ensure the user is tied to the duplicate
       }
   
       // Save to Firestore
@@ -222,7 +167,7 @@ export default function DashboardPage() {
   
   const handleDeleteResume = async (resumeId: string) => {
     try {
-      if (!session?.user?.email) return
+      if (!session?.user) return
   
       // Delete from Firestore
       await deleteDoc(doc(db, "resumes", resumeId))
