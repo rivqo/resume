@@ -330,7 +330,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground text-center max-w-md mt-1">
                   Create your first resume to get started on your professional journey.
                 </p>
-                <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
+                <Button className="mt-4 bg-[#C5172E]" onClick={() => setIsDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Resume
                 </Button>
