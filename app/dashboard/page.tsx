@@ -262,7 +262,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky px-4 md:px-0 top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex mx-auto h-16 items-center justify-between">
           <Link href="/" className="flex items-center">
             <img src="/peakCV.png" alt="Peak CV logo" className="h-12 w-full" />
@@ -276,7 +276,7 @@ export default function DashboardPage() {
         </div>
       </header>
       <main className="flex-1">
-        <div className="container py-8 mx-auto max-w-7xl">
+        <div className="container px-4 md:px-6 py-8 mx-auto max-w-7xl">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Your Resumes</h1>
