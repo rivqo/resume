@@ -93,12 +93,29 @@ body {
   }
 }
 
-#resume-preview {
+#resume-container {
   font-family: 'Roboto', sans-serif;
-  padding: 30px;
+  visibility: hidden;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 20mm;
+  padding-top: 0;
+  left: -99999px;
+  box-sizing: border-box;
+  background-color: #fff;
+  color: #000;
+}
+
+#resume-container.print {
+  visibility: unset !important;
+  left: 0 !important;
 }
 
 #resume-preview section h2 {
+  margin-bottom: 10px;
+}
+
+#resume-container section h2 {
   margin-bottom: 10px;
 }
 
@@ -108,11 +125,37 @@ body {
   page-break-after: always;
 }
 
+#resume-container p, #resume-container h1, #resume-container h2, #resume-container h3, #resume-container h4, #resume-container h5, #resume-container h6, #resume-container ul, #resume-container ol, #resume-container li, #resume-container blockquote {
+  color: #333 !important;
+  /* page-break-inside: avoid;
+  page-break-after: always; */
+}
+
+#resume-preview * {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  page-break-after: always;
+}
+
+#resume-container section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  page-break-after: always;
+}
+
 #resume-preview h2, #resume-preview h3 {
   font-weight: 600;
 }
 
+#resume-container h2, #resume-container h3 {
+  font-weight: 600;
+}
+
 #resume-preview .flex.h-full.bg-white {
+  gap: 30px;
+}
+
+#resume-container .flex.h-full.bg-white {
   gap: 30px;
 }
 

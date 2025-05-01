@@ -265,8 +265,7 @@ export default function DashboardPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex mx-auto h-16 items-center justify-between">
           <Link href="/" className="flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            <span className="font-bold">ResumeBuilder</span>
+            <img src="/peakCV.png" alt="Peak CV logo" className="h-12 w-full" />
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">Welcome, {userName}</span>
