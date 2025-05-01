@@ -159,7 +159,7 @@ export default function Home() {
       <footer className="border-t py-6 md:py-0">
         <div className="container flex mx-auto flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © 2025 Rivqo Digital LTD. All rights reserved.
+            © 2025 <a href="https://rivqo.com" target="_blank">Rivqo Digital LTD</a>. All rights reserved.
           </p>
         </div>
       </footer>
