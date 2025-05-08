@@ -221,7 +221,7 @@ export default function BuilderPage() {
   useEffect(() => {
     const loadResumeFromFirebase = async () => {
       const currentResumeId = localStorage.getItem("currentResumeId")
-      const email = session?.user?.email
+      const email = session?.user?.uid
       if (!email) return
   
       try {
