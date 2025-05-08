@@ -44,6 +44,7 @@ export default function BuilderPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(templates[0])
   const [activeTab, setActiveTab] = useState("edit")
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [pendingSave, setPendingSave] = useState(false)
   const [resumeName, setResumeName] = useState("")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const isMobile = useMobile()
@@ -59,9 +60,9 @@ export default function BuilderPage() {
   };
 
   useEffect(() => {
-    const pending = localStorage.getItem("pendingResumeSave");
-    if (pending && session?.user?.email) {
+    if (pendingSave && session?.user?.email) {
       handleSave();
+      setPendingSave(false);
     }
   }, [showLoginModal, session?.user?.email]);
 
@@ -69,25 +70,28 @@ export default function BuilderPage() {
     try {
       if (!session?.user?.email) {
         const resumeId = localStorage.getItem("currentResumeId") || `resume_${Date.now()}`
-        const pendingResume: SavedResume = {
-          id: resumeId,
-          name: resumeName,
-          lastUpdated: new Date().toISOString(),
-          templateId: selectedTemplate.id,
-          data: resumeData,
-          userId: "", // No user yet
-        }
+        // const pendingResume: SavedResume = {
+        //   id: resumeId,
+        //   name: resumeName,
+        //   lastUpdated: new Date().toISOString(),
+        //   templateId: selectedTemplate.id,
+        //   data: resumeData,
+        //   userId: "", // No user yet
+        // }
   
-        localStorage.setItem("pendingResumeSave", JSON.stringify(pendingResume));
+        // localStorage.setItem("pendingResumeSave", JSON.stringify(pendingResume));
+        setPendingSave(true);
         openLoginModal();
         return;
       }
   
       // Try to use pendingResume if available
-      const pending = localStorage.getItem("pendingResumeSave");
-      const resumeToSave: SavedResume = pending
-        ? { ...JSON.parse(pending), userId: session.user.uid }
-        : {
+      // const pending = localStorage.getItem("pendingResumeSave");
+      const resumeToSave: SavedResume = 
+      // pending
+      //   ? { ...JSON.parse(pending), userId: session.user.uid }
+      //   : 
+        {
             id: localStorage.getItem("currentResumeId") || `resume_${Date.now()}`,
             name: resumeName,
             lastUpdated: new Date().toISOString(),
