@@ -54,12 +54,16 @@ export default function BuilderPage() {
     setShowLoginModal(true); // or dispatch modal open state if using context/store
   }
 
+  const closeLoginModal = () => {
+    setShowLoginModal(false);
+  };
+
   useEffect(() => {
     const pending = localStorage.getItem("pendingResumeSave");
     if (pending && session?.user?.email) {
       handleSave();
     }
-  }, []);
+  }, [showLoginModal, session?.user?.email]);
 
   const handleSave = async () => {
     try {
@@ -285,7 +289,7 @@ export default function BuilderPage() {
                 Log in to save your resume and access it from any device.
               </DialogDescription>
             </DialogHeader>
-            <LoginForm nextPage={false} />
+            <LoginForm nextPage={false} closeModal={closeLoginModal} />
           </DialogContent>
         </Dialog>
         <div id="resume-container" style={{position: "absolute", top: 0, zIndex: -1}} className='pdf-container'>
