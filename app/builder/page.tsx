@@ -65,6 +65,7 @@ export default function BuilderPage() {
       const pending = localStorage.getItem("pendingResumeSave");
       if (pending) {
         setResumeData(JSON.parse(pending));
+        console.log("Pending save found:", pending);
         localStorage.removeItem("pendingResumeSave");
       }
       setPendingSave(false);
