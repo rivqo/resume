@@ -54,39 +54,97 @@ export default function BuilderPage() {
     setShowLoginModal(true); // or dispatch modal open state if using context/store
   }
 
+  useEffect(() => {
+    const pending = localStorage.getItem("pendingResumeSave");
+    if (pending && session?.user?.email) {
+      handleSave();
+    }
+  }, []);
+
   const handleSave = async () => {
     try {
       if (!session?.user?.email) {
-        openLoginModal(); // This should be your function to open the modal
+        const resumeId = localStorage.getItem("currentResumeId") || `resume_${Date.now()}`
+        const pendingResume: SavedResume = {
+          id: resumeId,
+          name: resumeName,
+          lastUpdated: new Date().toISOString(),
+          templateId: selectedTemplate.id,
+          data: resumeData,
+          userId: "", // No user yet
+        }
+  
+        localStorage.setItem("pendingResumeSave", JSON.stringify(pendingResume));
+        openLoginModal();
         return;
       }
-      const resumeId = localStorage.getItem("currentResumeId") || `resume_${Date.now()}`
-      localStorage.setItem("currentResumeId", resumeId)
   
-      const savedResume: SavedResume = {
-        id: resumeId,
-        name: resumeName,
-        lastUpdated: new Date().toISOString(),
-        templateId: selectedTemplate.id,
-        data: resumeData,
-        userId: session?.user?.uid || "",
-      }
+      // Try to use pendingResume if available
+      const pending = localStorage.getItem("pendingResumeSave");
+      const resumeToSave: SavedResume = pending
+        ? { ...JSON.parse(pending), userId: session.user.uid }
+        : {
+            id: localStorage.getItem("currentResumeId") || `resume_${Date.now()}`,
+            name: resumeName,
+            lastUpdated: new Date().toISOString(),
+            templateId: selectedTemplate.id,
+            data: resumeData,
+            userId: session.user.uid,
+          };
   
-      await setDoc(doc(db, "resumes", resumeId), savedResume)
+      await setDoc(doc(db, "resumes", resumeToSave.id), resumeToSave);
+  
+      localStorage.removeItem("pendingResumeSave");
   
       toast({
         title: "Resume saved",
         description: "Your resume has been saved successfully.",
-      })
+      });
     } catch (error) {
-      console.error("Error saving resume:", error)
+      console.error("Error saving resume:", error);
       toast({
         title: "Error saving resume",
         description: "There was an error saving your resume.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
+  
+
+  // const handleSave = async () => {
+  //   try {
+  //     if (!session?.user?.email) {
+  //       setPendingSave(true); 
+  //       openLoginModal(); // This should be your function to open the modal
+  //       return;
+  //     }
+  //     const resumeId = localStorage.getItem("currentResumeId") || `resume_${Date.now()}`
+  //     localStorage.setItem("currentResumeId", resumeId)
+  
+  //     const savedResume: SavedResume = {
+  //       id: resumeId,
+  //       name: resumeName,
+  //       lastUpdated: new Date().toISOString(),
+  //       templateId: selectedTemplate.id,
+  //       data: resumeData,
+  //       userId: session?.user?.uid || "",
+  //     }
+  
+  //     await setDoc(doc(db, "resumes", resumeId), savedResume)
+  
+  //     toast({
+  //       title: "Resume saved",
+  //       description: "Your resume has been saved successfully.",
+  //     })
+  //   } catch (error) {
+  //     console.error("Error saving resume:", error)
+  //     toast({
+  //       title: "Error saving resume",
+  //       description: "There was an error saving your resume.",
+  //       variant: "destructive",
+  //     })
+  //   }
+  // }
 
   function copyComputedStyles(source: HTMLElement, target: HTMLElement) {
     const computed = window.getComputedStyle(source);
@@ -227,7 +285,7 @@ export default function BuilderPage() {
                 Log in to save your resume and access it from any device.
               </DialogDescription>
             </DialogHeader>
-            <LoginForm/>
+            <LoginForm nextPage={false} />
           </DialogContent>
         </Dialog>
         <div id="resume-container" style={{position: "absolute", top: 0, zIndex: -1}} className='pdf-container'>

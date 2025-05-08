@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { GoogleAuthButton } from "@/components/auth-button"
 
-export default function LoginForm() {
+export default function LoginForm({ nextPage = true }: { nextPage?: boolean }) {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -37,7 +37,7 @@ export default function LoginForm() {
           password, // <- pass the Firebase token
         })
   
-        if (nextAuthRes?.ok) {
+        if (nextAuthRes?.ok && nextPage) {
           router.push("/dashboard")
         } else {
           throw new Error(nextAuthRes?.error || "Login failed")
