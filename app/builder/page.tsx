@@ -59,18 +59,18 @@ export default function BuilderPage() {
     setShowLoginModal(false);
   };
 
-  useEffect(() => {
-    if (pendingSave && session?.user?.email) {
-      handleSave();
-      // const pending = localStorage.getItem("pendingResumeSave");
-      // if (pending) {
-      //   setResumeData(JSON.parse(pending));
-      //   console.log("Pending save found:", pending);
-      //   localStorage.removeItem("pendingResumeSave");
-      // }
-      setPendingSave(false);
-    }
-  }, [showLoginModal, session?.user?.email]);
+  // useEffect(() => {
+  //   if (pendingSave && session?.user?.email) {
+  //     handleSave();
+  //     // const pending = localStorage.getItem("pendingResumeSave");
+  //     // if (pending) {
+  //     //   setResumeData(JSON.parse(pending));
+  //     //   console.log("Pending save found:", pending);
+  //     //   localStorage.removeItem("pendingResumeSave");
+  //     // }
+  //     setPendingSave(false);
+  //   }
+  // }, [showLoginModal, session?.user?.email]);
 
   // const handleSave = async () => {
   //   try {
