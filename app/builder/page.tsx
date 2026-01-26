@@ -1,9 +1,8 @@
 "use client"
 
-import { createRoot } from 'react-dom/client';
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ChevronLeft, Download, Plus, Save } from "lucide-react"
+import { ChevronLeft, Download, Save, Loader2, CheckCircle } from "lucide-react"
 import { jsPDF } from "jspdf"
 import "@/lib/Roboto-VariableFont_wdth,wght-normal"
 
@@ -14,198 +13,119 @@ import { ResumePreview } from "@/components/resume-preview"
 import { TemplateSelector } from "@/components/template-selector"
 import { useMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
-import type { ResumeData, Template, SavedResume } from "@/lib/types"
-import { defaultResumeData } from "@/lib/default-data"
 import { templates } from "@/lib/templates"
-import { db } from "@/lib/firebase"
-import {
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore"
 import { useSession } from "next-auth/react"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import LoginForm from "@/components/login-form"
+import { useResume } from "@/hooks/use-resume"
 
 export default function BuilderPage() {
-  const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData)
-  const [selectedTemplate, setSelectedTemplate] = useState<Template>(templates[0])
+  const [resumeId, setResumeId] = useState<string | null>(null)
+
+  // Initialize resumeId from localStorage on client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const id = localStorage.getItem("currentResumeId")
+      setResumeId(id)
+    }
+  }, [])
+
+  const {
+    resumeData,
+    setResumeData,
+    resumeName,
+    templateId,
+    setTemplateId,
+    isLoading,
+    isSaving,
+    lastSaved,
+  } = useResume(resumeId)
+
   const [activeTab, setActiveTab] = useState("edit")
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [pendingSave, setPendingSave] = useState(false)
-  const [resumeName, setResumeName] = useState("")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const isMobile = useMobile()
   const { toast } = useToast()
-  const { data: session, status } = useSession() // ✅ move hook call here
+  const { data: session } = useSession()
+
+  const selectedTemplate = templates.find((t) => t.id === templateId) || templates[0]
 
   const openLoginModal = () => {
-    setShowLoginModal(true); // or dispatch modal open state if using context/store
+    setShowLoginModal(true);
   }
 
   const closeLoginModal = () => {
     setShowLoginModal(false);
   };
 
-  // useEffect(() => {
-  //   if (pendingSave && session?.user?.email) {
-  //     handleSave();
-  //     // const pending = localStorage.getItem("pendingResumeSave");
-  //     // if (pending) {
-  //     //   setResumeData(JSON.parse(pending));
-  //     //   console.log("Pending save found:", pending);
-  //     //   localStorage.removeItem("pendingResumeSave");
-  //     // }
-  //     setPendingSave(false);
-  //   }
-  // }, [showLoginModal, session?.user?.email]);
-
-  // const handleSave = async () => {
-  //   try {
-  //     if (!session?.user?.email) {
-  //       const resumeId = localStorage.getItem("currentResumeId") || `resume_${Date.now()}`
-  //       const pendingResume: SavedResume = {
-  //         id: resumeId,
-  //         name: resumeName,
-  //         lastUpdated: new Date().toISOString(),
-  //         templateId: selectedTemplate.id,
-  //         data: resumeData,
-  //         userId: "", // No user yet
-  //       }
-  
-  //       localStorage.setItem("pendingResumeSave", JSON.stringify(pendingResume));
-  //       setPendingSave(true);
-  //       openLoginModal();
-  //       return;
-  //     }
-  
-  //     // Try to use pendingResume if available
-  //     const pending = localStorage.getItem("pendingResumeSave");
-  //     const resumeToSave: SavedResume = 
-  //     pending
-  //       ? { ...JSON.parse(pending), userId: session.user.uid }
-  //       : 
-  //       {
-  //           id: localStorage.getItem("currentResumeId") || `resume_${Date.now()}`,
-  //           name: resumeName,
-  //           lastUpdated: new Date().toISOString(),
-  //           templateId: selectedTemplate.id,
-  //           data: resumeData,
-  //           userId: session.user.uid || "",
-  //         };
-  
-  //     await setDoc(doc(db, "resumes", resumeToSave.id), resumeToSave);
-  
-  //     localStorage.removeItem("pendingResumeSave");
-  
-  //     toast({
-  //       title: "Resume saved",
-  //       description: "Your resume has been saved successfully.",
-  //     });
-  //   } catch (error) {
-  //     console.error("Error saving resume:", error);
-  //     toast({
-  //       title: "Error saving resume",
-  //       description: "There was an error saving your resume.",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
-  
-
-  const handleSave = async () => {
-    try {
-      if (!session?.user?.email) {
-        setPendingSave(true); 
-        openLoginModal(); // This should be your function to open the modal
-        return;
-      }
-      const resumeId = localStorage.getItem("currentResumeId") || `resume_${Date.now()}`
-      localStorage.setItem("currentResumeId", resumeId)
-  
-      const savedResume: SavedResume = {
-        id: resumeId,
-        name: resumeName,
-        lastUpdated: new Date().toISOString(),
-        templateId: selectedTemplate.id,
-        data: resumeData,
-        userId: session?.user?.uid || "",
-      }
-  
-      await setDoc(doc(db, "resumes", resumeId), savedResume)
-  
-      toast({
-        title: "Resume saved",
-        description: "Your resume has been saved successfully.",
-      })
-    } catch (error) {
-      console.error("Error saving resume:", error)
-      toast({
-        title: "Error saving resume",
-        description: "There was an error saving your resume.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  function copyComputedStyles(source: HTMLElement, target: HTMLElement) {
-    const computed = window.getComputedStyle(source);
-    for (const key of computed) {
-      target.style.setProperty(key, computed.getPropertyValue(key), computed.getPropertyPriority(key));
-    }
-  
-    Array.from(source.children).forEach((srcChild, i) => {
-      const tgtChild = target.children[i] as HTMLElement;
-      if (tgtChild) copyComputedStyles(srcChild as HTMLElement, tgtChild);
-    });
-  }
-
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
       setIsGeneratingPDF(true);
 
-      // Get the resume preview element
       const resumeElement = document.getElementById("resume-container");
       if (!resumeElement) {
         throw new Error("Resume preview element not found");
       }
 
+      // Temporarily make visible for capture
       resumeElement.classList.add("print");
 
-      // Initialize jsPDF instance
+      // Dynamic import to avoid SSR issues
+      const html2canvas = (await import("html2canvas")).default;
+
+      const canvas = await html2canvas(resumeElement, {
+        scale: 2, // Higher scale for better resolution
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+      // A4 dimensions in mm
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      // Save the generated PDF
-      pdf.html(resumeElement, {
-        callback: (doc) => {
-          const pos = resumeData.personalInfo.firstName + " " + resumeData.personalInfo.lastName + " " + resumeData.personalInfo.title + " Resume" ;
-          doc.save(`${resumeName || pos}.pdf`);
-          resumeElement.classList.remove("print");
-        },
-        margin: [20, 0, 20, 0],
-        html2canvas: { scale: 0.26 }, // Optional: If you still want to handle images or complex styles
-      });
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfImgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      // Handle multi-page if content is long
+      let heightLeft = pdfImgHeight;
+      let position = 0;
+
+      // First page
+      pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfImgHeight);
+      heightLeft -= pdfHeight;
+
+      // Add extra pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - pdfImgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, position, pdfWidth, pdfImgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      const fileName = resumeName || `${resumeData.personalInfo.firstName} ${resumeData.personalInfo.lastName} Resume`;
+      pdf.save(`${fileName}.pdf`);
+
+      resumeElement.classList.remove("print");
+
       toast({
         title: "PDF generated",
         description: "Your resume has been downloaded as a PDF.",
       });
-      // document.body.removeChild(pdfContainer);
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
@@ -213,46 +133,19 @@ export default function BuilderPage() {
         description: "There was an error creating your PDF. Please try again.",
         variant: "destructive",
       });
+      document.getElementById("resume-container")?.classList.remove("print");
     } finally {
       setIsGeneratingPDF(false);
     }
   };
-  
-  useEffect(() => {
-    const loadResumeFromFirebase = async () => {
-      const currentResumeId = localStorage.getItem("currentResumeId")
-      const email = session?.user?.uid
-      if (!email) return
-  
-      try {
-        const q = query(collection(db, "resumes"), where("userId", "==", session?.user?.uid))
-        const querySnapshot = await getDocs(q)
-        const resumes: SavedResume[] = []
-  
-        querySnapshot.forEach((doc) => resumes.push(doc.data() as SavedResume))
-  
-        const currentResume = resumes.find((r) => r.id === currentResumeId)
-        if (currentResume) {
-          setResumeData(currentResume.data)
-          setResumeName(currentResume.name)
-          const template = templates.find((t) => t.id === currentResume.templateId)
-          if (template) setSelectedTemplate(template)
-        }
-  
-        const selectedTemplateId = localStorage.getItem("selectedTemplate")
-        if (selectedTemplateId) {
-          const selected = templates.find((t) => t.id === selectedTemplateId)
-          if (selected) setSelectedTemplate(selected)
-          localStorage.removeItem("selectedTemplate")
-        }
-      } catch (error) {
-        console.error("Error loading resume from Firestore:", error)
-      }
-    }
-  
-    loadResumeFromFirebase()
-  }, [session?.user?.email])
-  
+
+  if (isLoading && resumeId) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -268,20 +161,30 @@ export default function BuilderPage() {
               <TemplateSelector
                 templates={templates}
                 selectedTemplate={selectedTemplate}
-                onSelectTemplate={setSelectedTemplate}
+                onSelectTemplate={(t) => setTemplateId(t.id)}
               />
             </div>
           ) : (
             <div className="ml-auto flex items-center gap-2">
+              <div className="mr-4 flex items-center gap-2 text-sm text-muted-foreground">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <CheckCircle className="h-3 w-3" />
+                    Saved
+                  </>
+                ) : null}
+              </div>
               <TemplateSelector
                 templates={templates}
                 selectedTemplate={selectedTemplate}
-                onSelectTemplate={setSelectedTemplate}
+                onSelectTemplate={(t) => setTemplateId(t.id)}
               />
-              <Button variant="outline" size="sm" onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Save
-              </Button>
+
               <Button size="sm" className="bg-[#C5172E]" onClick={handleDownload} disabled={isGeneratingPDF}>
                 <Download className="mr-2 h-4 w-4" />
                 {isGeneratingPDF ? "Generating..." : "Download PDF"}
@@ -291,7 +194,7 @@ export default function BuilderPage() {
         </div>
       </header>
       <main className="flex-1 px-4 md:px-0 bg-white">
-        <Dialog  open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Log in to save your resume</DialogTitle>
@@ -302,7 +205,7 @@ export default function BuilderPage() {
             <LoginForm nextPage={false} closeModal={closeLoginModal} />
           </DialogContent>
         </Dialog>
-        <div id="resume-container" style={{position: "absolute", top: 0, zIndex: -1}} className='pdf-container'>
+        <div id="resume-container" style={{ position: "absolute", top: 0, zIndex: -1 }} className='pdf-container'>
           <ResumePreview resumeData={resumeData} template={selectedTemplate} />
         </div>
         {isMobile ? (
@@ -316,7 +219,6 @@ export default function BuilderPage() {
                 <ResumeEditor resumeData={resumeData} setResumeData={setResumeData} />
               </TabsContent>
               <TabsContent value="preview" className="mt-4">
-                {/* <div id="pdf-container" style={{ position: 'absolute', top: '-10000px', width: '210mm', minHeight: '297mm', padding: '20mm', background: 'white' }} /> */}
                 <div id="resume-preview">
                   <ResumePreview resumeData={resumeData} template={selectedTemplate} />
                 </div>
@@ -324,10 +226,6 @@ export default function BuilderPage() {
             </Tabs>
             {activeTab == "preview" && (
               <div className="sticky bottom-8 right-4 flex justify-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleSave}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save
-                </Button>
                 <Button size="sm" className="bg-[#C5172E]" onClick={handleDownload} disabled={isGeneratingPDF}>
                   <Download className="mr-2 h-4 w-4" />
                   {isGeneratingPDF ? "Generating..." : "Download PDF"}

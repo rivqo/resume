@@ -29,10 +29,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { templates } from "@/lib/templates"
 import type { SavedResume } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardPage() {
   const [savedResumes, setSavedResumes] = useState<SavedResume[]>([])
@@ -40,18 +51,21 @@ export default function DashboardPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [userName, setUserName] = useState("")
+  const [resumeToDelete, setResumeToDelete] = useState<string | null>(null)
+
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
-  const { data: session, status } = useSession() // ✅ move hook call here
+  const { data: session, status } = useSession()
 
   useEffect(() => {
     const fetchUserResumes = async () => {
       if (!session?.user) {
-        router.push("/login")
+        if (status === "unauthenticated") {
+          router.push("/login")
+        }
         return
       }
-      // console.log(session.user)
 
       setUserName(session?.user?.name || session?.user?.email || "User")
 
@@ -62,7 +76,6 @@ export default function DashboardPage() {
         )
         const snapshot = await getDocs(q)
         const resumes = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as SavedResume[]
-        // console.log(resumes)
         setSavedResumes(resumes)
       } catch (error) {
         console.error("Error fetching resumes from Firestore:", error)
@@ -76,16 +89,15 @@ export default function DashboardPage() {
       }
     }
 
-    if (status === "authenticated") {
+    if (status !== "loading") {
       fetchUserResumes()
     }
   }, [session, status, router, toast])
 
   const handleCreateNewResume = async () => {
     try {
-      // const { data: session } = useSession()
       if (!session?.user) return
-  
+
       const newResume: SavedResume = {
         id: `resume_${Date.now()}`,
         name: newResumeName || "Untitled Resume",
@@ -93,28 +105,31 @@ export default function DashboardPage() {
         templateId: "modern",
         userId: session?.user?.uid,
         data: {
-                personalInfo: {
-                  firstName: "",
-                  lastName: "",
-                  title: "",
-                  email: "",
-                  phone: "",
-                  location: "",
-                  website: "",
-                  summary: "",
-                },
-                education: [],
-                experience: [],
-                projects: [],
-                skills: [],
-              },
+          personalInfo: {
+            firstName: "",
+            lastName: "",
+            title: "",
+            email: "",
+            phone: "",
+            location: "",
+            website: "",
+            summary: "",
+          },
+          education: [],
+          experience: [],
+          projects: [],
+          skills: [],
+        },
       }
-  
-      await addDoc(collection(db, "resumes"), newResume)
-  
+
+      await setDoc(doc(db, "resumes", newResume.id), newResume)
+
       toast({ title: "Resume created", description: "Your new resume has been created." })
       setIsDialogOpen(false)
       setNewResumeName("")
+
+      // Navigate to builder with the new ID
+      localStorage.setItem("currentResumeId", newResume.id)
       router.push("/builder")
     } catch (error) {
       console.error("Error creating new resume:", error)
@@ -134,23 +149,21 @@ export default function DashboardPage() {
   const handleDuplicateResume = async (resume: SavedResume) => {
     try {
       if (!session?.user) return
-  
+
       const duplicateId = `resume_${Date.now()}`
       const duplicateResume: SavedResume = {
         ...resume,
         id: duplicateId,
         name: `${resume.name} (Copy)`,
         lastUpdated: new Date().toISOString(),
-        userId: session?.user.uid, // Ensure the user is tied to the duplicate
+        userId: session?.user.uid,
       }
-  
-      // Save to Firestore
+
       await setDoc(doc(db, "resumes", duplicateId), duplicateResume)
-  
-      // Update local state
+
       const updatedResumes = [...savedResumes, duplicateResume]
       setSavedResumes(updatedResumes)
-  
+
       toast({
         title: "Resume duplicated",
         description: "A copy of your resume has been created.",
@@ -164,23 +177,21 @@ export default function DashboardPage() {
       })
     }
   }
-  
-  const handleDeleteResume = async (resumeId: string) => {
+
+  const confirmDeleteResume = async () => {
+    if (!resumeToDelete || !session?.user) return
+
     try {
-      if (!session?.user) return
-  
-      // Delete from Firestore
-      await deleteDoc(doc(db, "resumes", resumeId))
-  
-      const updatedResumes = savedResumes.filter((resume) => resume.id !== resumeId)
+      await deleteDoc(doc(db, "resumes", resumeToDelete))
+
+      const updatedResumes = savedResumes.filter((resume) => resume.id !== resumeToDelete)
       setSavedResumes(updatedResumes)
-  
-      // Clear current resume if it's being deleted
+
       const currentResumeId = localStorage.getItem("currentResumeId")
-      if (currentResumeId === resumeId) {
+      if (currentResumeId === resumeToDelete) {
         localStorage.removeItem("currentResumeId")
       }
-  
+
       toast({
         title: "Resume deleted",
         description: "Your resume has been deleted.",
@@ -192,9 +203,15 @@ export default function DashboardPage() {
         description: "There was an error deleting your resume.",
         variant: "destructive",
       })
+    } finally {
+      setResumeToDelete(null)
     }
   }
-  
+
+  const handleDeleteResume = async (resumeId: string) => {
+    setResumeToDelete(resumeId)
+  }
+
   const handleLogout = async () => {
     localStorage.removeItem("user")
     await signOut({ callbackUrl: "/login" })
@@ -210,10 +227,10 @@ export default function DashboardPage() {
       <header className="sticky px-4 md:px-0 top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex mx-auto h-16 items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/peakCV.png" alt="Peak CV logo" className="h-12 w-full" />
+            <span className="text-xl font-bold bg-gradient-to-r from-[#C5172E] to-blue-600 bg-clip-text text-transparent">Peak CV</span>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Welcome, {userName}</span>
+            <span className="text-sm text-muted-foreground hidden sm:inline-block">Welcome, {userName}</span>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />
             </Button>
@@ -229,7 +246,7 @@ export default function DashboardPage() {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="bg-[#C5172E]">
                   <Plus className="mr-2 h-4 w-4" />
                   New Resume
                 </Button>
@@ -261,36 +278,46 @@ export default function DashboardPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex h-[200px] items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-2 text-sm text-muted-foreground">Loading your resumes...</p>
-              </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader className="pb-3 space-y-2">
+                    <Skeleton className="h-5 w-1/2" />
+                    <Skeleton className="h-4 w-1/3" />
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <Skeleton className="h-4 w-full" />
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                    <Skeleton className="h-9 w-full" />
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
           ) : savedResumes.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No resumes yet</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md mt-1">
-                  Create your first resume to get started on your professional journey.
-                </p>
-                <Button className="mt-4 bg-[#C5172E]" onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Resume
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center animate-in fade-in-50">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50 mb-4">
+                <FileText className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold">No resumes created yet</h3>
+              <p className="mb-4 text-sm text-muted-foreground max-w-sm">
+                You haven't created any resumes. Start by creating a new one to showcase your professional profile.
+              </p>
+              <Button className="bg-[#C5172E]" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create First Resume
+              </Button>
+            </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {savedResumes.map((resume) => (
-                <Card key={resume.id} className="overflow-hidden">
+                <Card key={resume.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg">{resume.name}</CardTitle>
+                      <CardTitle className="text-lg truncate pr-2" title={resume.name}>{resume.name}</CardTitle>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" className="-mr-2">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -306,7 +333,11 @@ export default function DashboardPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => handleDeleteResume(resume.id)}
+                            onClick={() => {
+                              // Use setTimeout to ensure DropdownMenu closes properly before opening AlertDialog
+                              // This prevents pointer-events: none getting stuck on the body
+                              setTimeout(() => setResumeToDelete(resume.id), 0)
+                            }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
@@ -314,16 +345,16 @@ export default function DashboardPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <CardDescription>Template: {getTemplateName(resume.templateId)}</CardDescription>
+                    <CardDescription className="truncate">Template: {getTemplateName(resume.templateId)}</CardDescription>
                   </CardHeader>
                   <CardContent className="pb-3">
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="mr-1 h-4 w-4" />
-                      Last updated: {format(new Date(resume.lastUpdated), "MMM d, yyyy")}
+                      Updated: {format(new Date(resume.lastUpdated), "MMM d, yyyy")}
                     </div>
                   </CardContent>
                   <CardFooter className="pt-0">
-                    <Button variant="outline" className="w-full" onClick={() => handleEditResume(resume.id)}>
+                    <Button variant="outline" className="w-full hover:bg-slate-50" onClick={() => handleEditResume(resume.id)}>
                       Open Resume
                     </Button>
                   </CardFooter>
@@ -333,6 +364,24 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+
+      <AlertDialog open={!!resumeToDelete} onOpenChange={(open) => !open && setResumeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your resume
+              and remove your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteResume} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

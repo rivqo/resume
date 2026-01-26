@@ -48,6 +48,7 @@ export interface ResumeData {
   experience: Experience[]
   projects: Project[]
   skills: string[]
+  sectionOrder: string[]
 }
 
 export interface Template {

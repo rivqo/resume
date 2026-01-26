@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@auth/core": "latest",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -47,7 +50,7 @@
     "embla-carousel-react": "8.5.1",
     "firebase": "^11.6.1",
     "firebase-admin": "^13.3.0",
-    "html2canvas": "latest",
+    "html2canvas": "^1.4.1",
     "html2pdf": "^0.0.11",
     "html2pdf.js": "^0.10.3",
     "input-otp": "1.4.1",

@@ -69,4 +69,5 @@ export const defaultResumeData: ResumeData = {
     },
   ],
   skills: ["JavaScript", "TypeScript", "React", "Node.js", "HTML/CSS", "Git", "RESTful APIs", "SQL", "MongoDB"],
+  sectionOrder: ["summary", "experience", "projects", "education", "skills"],
 }
