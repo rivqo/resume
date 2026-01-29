@@ -47,7 +47,7 @@ export default function Home() {
               <div className="flex flex-col justify-center items-center space-y-4 mb-10">
                 <div className="space-y-4 flex-col items-center justify-center">
                   <h1 className="text-4xl text-center max-w-full md:max-w-[700px] font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Create professional resumes in minutes
+                    Create professional resumes in minutes as how
                   </h1>
                   <p className="text-muted-foreground text-center md:text-xl">
                     Build ATS-ready CVs in minutes with our easy-to-use resume builder.
