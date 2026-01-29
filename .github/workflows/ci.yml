@@ -30,7 +30,7 @@ jobs:
 
       # 4️⃣ Run lint
       - name: Lint code
-        run: npm run lint
+        run: npm run lint -- --max-warnings=0
 
       # 5️⃣ Run tests
       - name: Run unit & integration tests
