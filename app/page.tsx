@@ -55,8 +55,13 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row items-center justify-center">
                   <Link href="/templates">
-                    <Button size="lg" className="w-full transition-all  text-xl py-8 px-8 ease-in-out bg-[#C5172E] hover:bg-[#4A102A]">
+                    <Button size="lg" className="w-full transition-all text-xl py-8 px-8 ease-in-out bg-[#C5172E] hover:bg-[#4A102A]">
                       Start Building <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/scan">
+                    <Button size="lg" variant="outline" className="w-full transition-all text-xl py-8 px-8 ease-in-out border-[#C5172E] text-[#C5172E] hover:bg-[#FFE6E9]">
+                      Scan CV with AI
                     </Button>
                   </Link>
                 </div>

@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import LoginForm from "@/components/login-form"
 import { useResume } from "@/hooks/use-resume"
 
@@ -49,10 +50,37 @@ export default function BuilderPage() {
 
   const [activeTab, setActiveTab] = useState("edit")
   const [showLoginModal, setShowLoginModal] = useState(false)
+
+  // AI State
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState("")
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false)
+
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const isMobile = useMobile()
   const { toast } = useToast()
   const { data: session } = useSession()
+
+  // Handle Scan Import
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const importedData = localStorage.getItem("tempResumeData")
+      if (importedData) {
+        try {
+          const parsed = JSON.parse(importedData)
+          setResumeData(parsed)
+          localStorage.removeItem("tempResumeData")
+          toast({
+            title: "Resume Imported",
+            description: "Your resume data has been successfully imported.",
+          })
+        } catch (e) {
+          console.error("Failed to parse imported data", e)
+        }
+      }
+    }
+  }, [setResumeData, toast])
+
 
   const selectedTemplate = templates.find((t) => t.id === templateId) || templates[0]
 
@@ -63,6 +91,45 @@ export default function BuilderPage() {
   const closeLoginModal = () => {
     setShowLoginModal(false);
   };
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) return
+
+    setIsGeneratingAi(true)
+    try {
+      const response = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Generation failed")
+      }
+
+      const data = await response.json()
+
+      // Merge or replace? For now replace, but maybe we should ask user.
+      // Replacing is safer for "Generate from scratch".
+      setResumeData(data)
+      setShowAiModal(false)
+      setAiPrompt("")
+
+      toast({
+        title: "Resume Generated",
+        description: "Your resume has been generated based on your description.",
+      })
+    } catch (error) {
+      console.error("AI Generation Error:", error)
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate resume. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingAi(false)
+    }
+  }
 
   const handleDownload = async () => {
     try {
@@ -179,6 +246,11 @@ export default function BuilderPage() {
                   </>
                 ) : null}
               </div>
+
+              <Button variant="outline" size="sm" onClick={() => setShowAiModal(true)}>
+                <span className="mr-2">✨</span> AI Assistant
+              </Button>
+
               <TemplateSelector
                 templates={templates}
                 selectedTemplate={selectedTemplate}
@@ -205,6 +277,34 @@ export default function BuilderPage() {
             <LoginForm nextPage={false} closeModal={closeLoginModal} />
           </DialogContent>
         </Dialog>
+
+        {/* AI Assistant Modal */}
+        <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>AI Resume Assistant</DialogTitle>
+              <DialogDescription>
+                Enter a job title, description, or topic, and I'll generate a resume for you.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Textarea
+                placeholder="E.g., Senior Full Stack Developer with 5 years of experience in React and Node.js..."
+                value={aiPrompt}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAiPrompt(e.target.value)}
+                rows={5}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowAiModal(false)}>Cancel</Button>
+              <Button onClick={handleAiGenerate} disabled={isGeneratingAi || !aiPrompt.trim()}>
+                {isGeneratingAi && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Generate
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <div id="resume-container" style={{ position: "absolute", top: 0, zIndex: -1 }} className='pdf-container'>
           <ResumePreview resumeData={resumeData} template={selectedTemplate} />
         </div>

@@ -20,7 +20,7 @@ const getSectionOrder = (resumeData: ResumeData) => {
 
 // Modern Template
 const ModernTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
-  const { personalInfo, education, experience, projects, skills } = resumeData
+  const { personalInfo, education = [], experience = [], projects = [], skills = [] } = resumeData
   const order = getSectionOrder(resumeData)
 
   const sections: Record<string, JSX.Element | null> = {
@@ -147,7 +147,7 @@ const ModernTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
 
 // Classic Template
 const ClassicTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
-  const { personalInfo, education, experience, projects, skills } = resumeData
+  const { personalInfo, education = [], experience = [], projects = [], skills = [] } = resumeData
   const order = getSectionOrder(resumeData)
 
   const sections: Record<string, JSX.Element | null> = {
@@ -273,7 +273,7 @@ const ClassicTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
 
 // Minimalist Template
 const MinimalistTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
-  const { personalInfo, education, experience, projects, skills } = resumeData
+  const { personalInfo, education = [], experience = [], projects = [], skills = [] } = resumeData
   const order = getSectionOrder(resumeData)
 
   const sections: Record<string, JSX.Element | null> = {
@@ -401,7 +401,7 @@ const MinimalistTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
 
 // Professional Template
 const ProfessionalTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
-  const { personalInfo, education, experience, projects, skills } = resumeData
+  const { personalInfo, education = [], experience = [], projects = [], skills = [] } = resumeData
   const order = getSectionOrder(resumeData)
 
   const sections: Record<string, JSX.Element | null> = {
@@ -532,7 +532,7 @@ const ProfessionalTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
 
 // Creative Template
 const CreativeTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
-  const { personalInfo, education, experience, projects, skills } = resumeData
+  const { personalInfo, education = [], experience = [], projects = [], skills = [] } = resumeData
   const order = getSectionOrder(resumeData)
 
   const sections: Record<string, JSX.Element | null> = {
@@ -676,7 +676,7 @@ const CreativeTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
 
 // Executive Template
 const ExecutiveTemplate = ({ resumeData }: { resumeData: ResumeData }) => {
-  const { personalInfo, education, experience, projects, skills } = resumeData
+  const { personalInfo, education = [], experience = [], projects = [], skills = [] } = resumeData
   const order = getSectionOrder(resumeData)
 
   const sections: Record<string, JSX.Element | null> = {
