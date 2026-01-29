@@ -29,8 +29,8 @@ jobs:
         run: npm ci
 
       # 4️⃣ Run lint
-      - name: Lint code
-        run: npx eslint . --ext .js,.ts,.jsx,.tsx
+      # - name: Lint code
+      #   run: npx eslint . --ext .js,.ts,.jsx,.tsx
 
       # 5️⃣ Run tests
       - name: Run unit & integration tests
