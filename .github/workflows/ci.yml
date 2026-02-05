@@ -36,6 +36,10 @@ jobs:
       # - name: Run unit & integration tests
       #   run: npm test
 
+      # Move .env.example to .env
+      - name: Move .env.example to .env
+        run: mv .env.example .env
+
       # 6️⃣ Build Next.js
       - name: Build project
         run: npm run build
