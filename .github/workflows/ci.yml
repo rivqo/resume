@@ -41,5 +41,5 @@ jobs:
           key: ${{ secrets.SSH_DEPLOY_KEY }}
           script: |
             cd /var/www/peakcv
-            chmod +x ./scripts/deploy.sh
+            chmod +x ./scripts/deploy.sh 
             ./scripts/deploy.sh
